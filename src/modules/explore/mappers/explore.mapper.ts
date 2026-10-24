@@ -20,7 +20,8 @@ export const ExploreMapper = {
       features: bo.features ?? [],
       imageUrl: imageLink(bo.imageUrl),
       rewardEligible: bo.rewardEligible,
-      dealersInStock: bo.dealersInStock,
+      dealersInStock: bo.dealersInStock ?? undefined,
+      listPrice: bo.listPrice ?? undefined,
       earning: {
         points: bo.earning.points,
         basis: bo.earning.basis,

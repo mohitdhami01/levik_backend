@@ -50,7 +50,7 @@ export class ExploreService {
   async product(caller: Caller, id: string): Promise<{ product: ExploreProductBo; dealers: DealerStockBo[]; city: string | null }> {
     const [row, city, ctx] = await Promise.all([this.explore.product(id), this.explore.cityOf(caller.id), this.context(caller.role)]);
     if (!row) throw AppException.notFound('Product', id);
-    const dealers = await this.explore.dealersForProduct(id, city);
+    const dealers = caller.role === 'plumber' ? await this.explore.dealersForProduct(id, city) : [];
     return {
       product: this.withEarning(row, ctx),
       dealers: dealers.map((d) => ({ ...d, stockLevel: this.level(d.quantity, ctx.threshold) })),
@@ -78,18 +78,19 @@ export class ExploreService {
     return { role, rate: settings.retailerPointsPer100, threshold: settings.lowStockThreshold, schemes };
   }
 
-  private withEarning({ mrp, plumberPoints, ...row }: ExploreProductRowBo, ctx: EarningContext): ExploreProductBo {
+  private withEarning({ mrp, plumberPoints, dealersInStock, ...row }: ExploreProductRowBo, ctx: EarningContext): ExploreProductBo {
     const eligible = row.rewardEligible;
     const earning: EarningBo =
       ctx.role === 'plumber'
         ? { points: eligible ? plumberPoints : 0, basis: 'per approved scan', schemes: [] }
-        : { points: eligible ? Math.floor((mrp / 100) * ctx.rate) : 0, basis: 'per unit invoiced at MRP', schemes: [] };
+        : { points: eligible ? Math.floor((mrp / 100) * ctx.rate) : 0, basis: 'per unit sold at MRP', schemes: [] };
     earning.schemes = eligible
       ? ctx.schemes
           .filter((s) => s.eligibleCategories.includes(row.category))
           .map(({ id, name, incentivePoints, targetValue, endDate }) => ({ id, name, incentivePoints, targetValue, endDate }))
       : [];
-    return { ...row, earning };
+    // Other shops' stock is only useful to plumbers deciding where to buy; retailers see their price instead.
+    return ctx.role === 'plumber' ? { ...row, earning, dealersInStock, listPrice: null } : { ...row, earning, dealersInStock: null, listPrice: mrp };
   }
 
   private level(quantity: number, threshold: number): StockLevel {

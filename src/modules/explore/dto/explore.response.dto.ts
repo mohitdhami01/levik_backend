@@ -14,8 +14,8 @@ export class ExploreSchemeDto {
 export class ExploreEarningDto {
   /** Points the caller earns from this product (0 if not reward-eligible). */
   points: number;
-  @ApiProperty({ enum: ['per approved scan', 'per unit invoiced at MRP'] })
-  basis: 'per approved scan' | 'per unit invoiced at MRP';
+  @ApiProperty({ enum: ['per approved scan', 'per unit sold at MRP'] })
+  basis: 'per approved scan' | 'per unit sold at MRP';
   /** Live schemes for the caller's role that count this product. */
   schemes: ExploreSchemeDto[];
 }
@@ -31,8 +31,10 @@ export class ExploreProductDto {
   features: string[];
   imageUrl?: string;
   rewardEligible: boolean;
-  /** Approved, active dealers reporting this product in stock. */
-  dealersInStock: number;
+  /** Plumbers only: approved, active dealers reporting this product in stock. */
+  dealersInStock?: number;
+  /** Retailers only: catalogue price (MRP) their stock orders are priced at. */
+  listPrice?: number;
   earning: ExploreEarningDto;
 }
 
@@ -65,7 +67,7 @@ export class ExploreDealerStockDto extends ExploreDealerDto {
 
 export class ExploreProductDetailDto {
   product: ExploreProductDto;
-  /** Dealers with this product in stock — caller's city first, then most stock. */
+  /** Plumbers only (empty for retailers): dealers with this product in stock, caller's city first, then most stock. */
   dealers: ExploreDealerStockDto[];
   /** Caller's city used for "nearby" ordering. */
   city?: string;

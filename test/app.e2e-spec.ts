@@ -260,14 +260,20 @@ describe('Levik API (e2e)', () => {
       expect((await http.get(api('/app/explore/dealers/RTL-9999')).set('authorization', plumber)).status).toBe(404);
     });
 
-    it('gives retailers the invoice incentive per unit instead of scan points', async () => {
+    it('gives retailers their price and incentive, never other shops\' stock', async () => {
       const retailer = await signIn('9829041127');
       const res = await http.get(api('/app/explore/products/PRD-103')).set('authorization', retailer);
       expect(res.status).toBe(200);
       // 1 pt per ₹100 of MRP ₹18,500 → 185 pts per unit.
-      expect(res.body.product.earning).toMatchObject({ points: 185, basis: 'per unit invoiced at MRP' });
-      const dealers = await http.get(api('/app/explore/dealers')).set('authorization', retailer);
-      expect(dealers.body.dealers.length).toBeGreaterThan(0);
+      expect(res.body.product.earning).toMatchObject({ points: 185, basis: 'per unit sold at MRP' });
+      expect(res.body.product).toMatchObject({ listPrice: 18500 });
+      expect(res.body.product).not.toHaveProperty('dealersInStock');
+      expect(res.body.dealers).toEqual([]);
+
+      const list = await http.get(api('/app/explore/products')).query({ pageSize: 50 }).set('authorization', retailer);
+      expect(list.body.items.every((p: object) => !('dealersInStock' in p) && 'listPrice' in p)).toBe(true);
+      expect((await http.get(api('/app/explore/dealers')).set('authorization', retailer)).status).toBe(403);
+      expect((await http.get(api('/app/explore/dealers/RTL-2001')).set('authorization', retailer)).status).toBe(403);
     });
 
     it('is not available to admins', async () => {

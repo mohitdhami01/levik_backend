@@ -32,12 +32,16 @@ export interface LiveSchemeBo {
 /** What the caller earns from a product, for their role. */
 export interface EarningBo {
   points: number;
-  basis: 'per approved scan' | 'per unit invoiced at MRP';
+  basis: 'per approved scan' | 'per unit sold at MRP';
   schemes: Array<Pick<LiveSchemeBo, 'id' | 'name' | 'incentivePoints' | 'targetValue' | 'endDate'>>;
 }
 
-export interface ExploreProductBo extends Omit<ExploreProductRowBo, 'mrp' | 'plumberPoints'> {
+export interface ExploreProductBo extends Omit<ExploreProductRowBo, 'mrp' | 'plumberPoints' | 'dealersInStock'> {
   earning: EarningBo;
+  /** Plumbers only: dealers reporting it in stock. Retailers never see other shops' stock. */
+  dealersInStock: number | null;
+  /** Retailers only: catalogue price (what their orders are priced at). */
+  listPrice: number | null;
 }
 
 export interface DealerRowBo {
